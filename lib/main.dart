@@ -32,7 +32,7 @@ class ConsultarImeiApp extends StatelessWidget {
           create: (_) => ImeiProvider(consultImeiUseCase: useCase),
         ),
         Provider(
-          create: (_) => AdService()
+          create: (_) => AdService(frequency: 3)
             ..initialize()
             ..loadInterstitial(),
         ),

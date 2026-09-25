@@ -63,7 +63,7 @@ class _HomeScreenState extends State<HomeScreen> {
     if (!mounted) return;
 
     if (provider.status == ImeiStatus.success) {
-      context.read<AdService>().showInterstitialIfReady(
+      context.read<AdService>().registrarConsultaYMostrarSiToca(
         onDismissed: () {
           if (mounted) _mostrarResultado();
         },
