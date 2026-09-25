@@ -2,6 +2,10 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+<!-- ... Otras configuraciones de tu App ... -->
+	<key>NSCameraUsageDescription</key>
+	<string>Necesitamos la cámara para escanear el código de barras del IMEI</string>
+<!-- ... Otras configuraciones de tu App ... -->
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
 	<key>CFBundleDevelopmentRegion</key>
