@@ -1,5 +1,7 @@
+import 'package:consultar_imei/core/ads/ad_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:provider/provider.dart';
 
@@ -15,20 +17,25 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   final TextEditingController _controller = TextEditingController();
-  final _formKey = GlobalKey<FormState>();
   String? _validationError;
 
   static const int _maxLen = 15;
   static const int _minLen = 14;
 
+  BannerAd? _bannerAd;
+
   @override
   void initState() {
     super.initState();
     _controller.addListener(() => setState(() {}));
+    _bannerAd = context.read<AdService>().createBannerAd(
+      onLoaded: () => setState(() {}),
+    );
   }
 
   @override
   void dispose() {
+    _bannerAd?.dispose();
     _controller.dispose();
     super.dispose();
   }
@@ -56,19 +63,27 @@ class _HomeScreenState extends State<HomeScreen> {
     if (!mounted) return;
 
     if (provider.status == ImeiStatus.success) {
-      showModalBottomSheet(
-        context: context,
-        isScrollControlled: true,
-        shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-        ),
-        builder: (_) => const ImeiResultSheet(),
+      context.read<AdService>().showInterstitialIfReady(
+        onDismissed: () {
+          if (mounted) _mostrarResultado();
+        },
       );
     } else if (provider.status == ImeiStatus.error) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(provider.errorMessage ?? 'Error desconocido')),
       );
     }
+  }
+
+  Future<dynamic> _mostrarResultado() {
+    return showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (_) => const ImeiResultSheet(),
+    );
   }
 
   Future<void> _escanear() async {
@@ -95,6 +110,13 @@ class _HomeScreenState extends State<HomeScreen> {
     final currentLength = _controller.text.length;
 
     return Scaffold(
+      bottomNavigationBar: _bannerAd == null
+          ? null
+          : SizedBox(
+              height: _bannerAd!.size.height.toDouble(),
+              width: _bannerAd!.size.width.toDouble(),
+              child: AdWidget(ad: _bannerAd!),
+            ),
       appBar: AppBar(title: const Text('Consultar IMEI')),
       body: SafeArea(
         child: Padding(

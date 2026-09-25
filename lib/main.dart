@@ -1,4 +1,6 @@
+import 'package:consultar_imei/core/ads/ad_service.dart';
 import 'package:flutter/material.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:provider/provider.dart';
 import 'package:http/http.dart' as http;
 
@@ -9,7 +11,9 @@ import 'domain/usecases/consult_imei_usecase.dart';
 import 'presentation/providers/imei_provider.dart';
 import 'presentation/screens/home_screen.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await MobileAds.instance.initialize();
   runApp(const ConsultarImeiApp());
 }
 
@@ -22,8 +26,17 @@ class ConsultarImeiApp extends StatelessWidget {
     final repository = ImeiRepositoryImpl(remoteDataSource: remoteDataSource);
     final useCase = ConsultImeiUseCase(repository);
 
-    return ChangeNotifierProvider(
-      create: (_) => ImeiProvider(consultImeiUseCase: useCase),
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider(
+          create: (_) => ImeiProvider(consultImeiUseCase: useCase),
+        ),
+        Provider(
+          create: (_) => AdService()
+            ..initialize()
+            ..loadInterstitial(),
+        ),
+      ],
       child: MaterialApp(
         title: 'Consultar IMEI',
         debugShowCheckedModeBanner: false,
