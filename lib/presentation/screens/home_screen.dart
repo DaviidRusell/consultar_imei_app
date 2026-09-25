@@ -1,56 +1,174 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:mobile_scanner/mobile_scanner.dart';
+import 'package:provider/provider.dart';
 
-import 'manual_input_screen.dart';
-import 'scanner_screen.dart';
-import 'dial_code_screen.dart';
+import '../providers/imei_provider.dart';
+import '../widgets/imei_result_sheet.dart';
 
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
   @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  final TextEditingController _controller = TextEditingController();
+  final _formKey = GlobalKey<FormState>();
+  String? _validationError;
+
+  static const int _maxLen = 15;
+  static const int _minLen = 14;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller.addListener(() => setState(() {}));
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  String? _validar(String value) {
+    final v = value.trim();
+    if (v.isEmpty) return 'Ingresa un IMEI';
+    if (v.length < _minLen) return 'Faltan ${_minLen - v.length} dígitos';
+    if (!RegExp(r'^\d{14,15}$').hasMatch(v)) return 'Solo se permiten números';
+    return null;
+  }
+
+  Future<void> _consultar([String? imeiOverride]) async {
+    final imei = (imeiOverride ?? _controller.text).trim();
+    final error = _validar(imei);
+
+    setState(() => _validationError = error);
+    if (error != null) return;
+
+    FocusScope.of(context).unfocus();
+
+    final provider = context.read<ImeiProvider>();
+    await provider.consultar(imei);
+
+    if (!mounted) return;
+
+    if (provider.status == ImeiStatus.success) {
+      showModalBottomSheet(
+        context: context,
+        isScrollControlled: true,
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        builder: (_) => const ImeiResultSheet(),
+      );
+    } else if (provider.status == ImeiStatus.error) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(provider.errorMessage ?? 'Error desconocido')),
+      );
+    }
+  }
+
+  Future<void> _escanear() async {
+    final imeiEscaneado = await Navigator.push<String>(
+      context,
+      MaterialPageRoute(builder: (_) => const _ScannerPage()),
+    );
+
+    if (imeiEscaneado == null || !mounted) return;
+
+    _controller.text = imeiEscaneado;
+    setState(() => _validationError = null);
+    await _consultar(imeiEscaneado); // consulta inmediata tras escanear
+  }
+
+  void _limpiar() {
+    _controller.clear();
+    setState(() => _validationError = null);
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final isLoading = context.watch<ImeiProvider>().isLoading;
+    final currentLength = _controller.text.length;
+
     return Scaffold(
       appBar: AppBar(title: const Text('Consultar IMEI')),
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.all(24),
+          padding: const EdgeInsets.all(20),
           child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const Icon(Icons.phonelink_lock, size: 96),
-              const SizedBox(height: 12),
+              const SizedBox(height: 8),
               Text(
-                'Verifica el estado de un IMEI en las bases oficiales de Colombia',
-                textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.titleMedium,
-              ),
-              const SizedBox(height: 32),
-              _OptionButton(
-                icon: Icons.keyboard,
-                label: 'Ingresar IMEI manualmente',
-                onTap: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const ManualInputScreen()),
-                ),
+                'Ingresa el IMEI de 14 o 15 dígitos, o escanéalo con la cámara',
+                style: Theme.of(context).textTheme.bodyMedium,
               ),
               const SizedBox(height: 16),
-              _OptionButton(
-                icon: Icons.dialpad,
-                label: 'Consultar el IMEI de este equipo',
-                onTap: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const DialCodeScreen()),
+              TextField(
+                controller: _controller,
+                enabled: !isLoading,
+                keyboardType: TextInputType.number,
+                textInputAction: TextInputAction.done,
+                inputFormatters: [
+                  FilteringTextInputFormatter.digitsOnly,
+                  LengthLimitingTextInputFormatter(_maxLen),
+                ],
+                onSubmitted: (_) => _consultar(),
+                style: const TextStyle(fontSize: 18, letterSpacing: 1.2),
+                decoration: InputDecoration(
+                  hintText: '444444444444444',
+                  filled: true,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(14),
+                    borderSide: BorderSide.none,
+                  ),
+                  errorText: _validationError,
+                  counterText: '$currentLength/$_maxLen',
+                  suffixIcon: currentLength > 0
+                      ? IconButton(
+                          icon: const Icon(Icons.close),
+                          tooltip: 'Limpiar',
+                          onPressed: isLoading ? null : _limpiar,
+                        )
+                      : null,
                 ),
               ),
-              const SizedBox(height: 16),
-              _OptionButton(
-                icon: Icons.qr_code_scanner,
-                label: 'Escanear código de barras',
-                onTap: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const ScannerScreen()),
+              const SizedBox(height: 20),
+              FilledButton.icon(
+                onPressed: isLoading ? null : () => _consultar(),
+                style: FilledButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
                 ),
+                icon: isLoading
+                    ? const SizedBox(
+                        height: 18,
+                        width: 18,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
+                    : const Icon(Icons.search),
+                label: Text(isLoading ? 'Consultando...' : 'CONSULTAR IMEI'),
+              ),
+              const SizedBox(height: 12),
+              OutlinedButton.icon(
+                onPressed: isLoading ? null : _escanear,
+                style: OutlinedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                ),
+                icon: const Icon(Icons.qr_code_scanner),
+                label: const Text('ESCANEAR CÓDIGO DE BARRA'),
               ),
             ],
           ),
@@ -60,27 +178,70 @@ class HomeScreen extends StatelessWidget {
   }
 }
 
-class _OptionButton extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final VoidCallback onTap;
+/// Pantalla de cámara aislada: retorna el IMEI detectado vía Navigator.pop
+class _ScannerPage extends StatefulWidget {
+  const _ScannerPage();
 
-  const _OptionButton({
-    required this.icon,
-    required this.label,
-    required this.onTap,
-  });
+  @override
+  State<_ScannerPage> createState() => _ScannerPageState();
+}
+
+class _ScannerPageState extends State<_ScannerPage> {
+  final MobileScannerController _controller = MobileScannerController(
+    formats: const [BarcodeFormat.code128, BarcodeFormat.ean13],
+  );
+  bool _detectado = false;
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _onDetect(BarcodeCapture capture) {
+    if (_detectado) return;
+    for (final barcode in capture.barcodes) {
+      final raw = barcode.rawValue ?? '';
+      final digits = RegExp(r'\d{14,15}').firstMatch(raw)?.group(0);
+      if (digits != null) {
+        _detectado = true;
+        _controller.stop();
+        Navigator.pop(context, digits);
+        return;
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    return FilledButton.icon(
-      onPressed: onTap,
-      icon: Icon(icon),
-      label: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 12),
-        child: Text(label),
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Escanear código'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.flash_on),
+            onPressed: () => _controller.toggleTorch(),
+          ),
+        ],
       ),
-      style: FilledButton.styleFrom(alignment: Alignment.centerLeft),
+      body: Stack(
+        children: [
+          MobileScanner(controller: _controller, onDetect: _onDetect),
+          Align(
+            alignment: Alignment.bottomCenter,
+            child: Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(16),
+              color: Colors.black54,
+              child: const Text(
+                'Apunta al código de barras del IMEI (pantalla *#06# o caja del equipo)',
+                textAlign: TextAlign.center,
+                style: TextStyle(color: Colors.white),
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
