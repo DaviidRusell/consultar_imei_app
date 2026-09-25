@@ -32,9 +32,9 @@ dependencies:
     sdk: flutter
   provider: ^6.1.2
   http: ^1.2.2
-  mobile_scanner: ^6.0.2
+  mobile_scanner: ^7.4.2
   url_launcher: ^6.3.1
-  google_mobile_ads: ^5.2.0
+  google_mobile_ads: ^9.1.0
   shared_preferences: ^2.3.2
 
   # The following adds the Cupertino Icons font to your application.
