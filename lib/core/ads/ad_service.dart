@@ -6,6 +6,12 @@ class AdService {
   InterstitialAd? _interstitialAd;
   bool _isLoadingInterstitial = false;
 
+  /// Cada cuántas consultas exitosas se muestra el intersticial.
+  final int frequency;
+  int _consultasDesdeUltimoAd = 0;
+
+  AdService({this.frequency = 3});
+
   Future<void> initialize() => MobileAds.instance.initialize();
 
   BannerAd createBannerAd({required void Function() onLoaded}) {
@@ -42,11 +48,23 @@ class AdService {
     );
   }
 
-  /// Muestra el intersticial si está listo; siempre precarga el siguiente.
-  void showInterstitialIfReady({void Function()? onDismissed}) {
+  /// Se llama tras CADA consulta exitosa. Internamente decide si toca
+  /// mostrar el anuncio según `frequency`. Si no toca, ejecuta
+  /// `onDismissed` de inmediato (como si no hubiera anuncio).
+  void registrarConsultaYMostrarSiToca({void Function()? onDismissed}) {
+    _consultasDesdeUltimoAd++;
+
+    if (_consultasDesdeUltimoAd < frequency) {
+      onDismissed?.call();
+      return;
+    }
+
     final ad = _interstitialAd;
     if (ad == null) {
+      // No cargó a tiempo: no bloqueamos al usuario, seguimos normal
+      // y lo intentamos de nuevo la próxima vez que toque.
       loadInterstitial();
+      onDismissed?.call();
       return;
     }
 
@@ -54,12 +72,14 @@ class AdService {
       onAdDismissedFullScreenContent: (ad) {
         ad.dispose();
         _interstitialAd = null;
-        loadInterstitial(); // precarga el próximo
+        _consultasDesdeUltimoAd = 0;
+        loadInterstitial();
         onDismissed?.call();
       },
       onAdFailedToShowFullScreenContent: (ad, error) {
         ad.dispose();
         _interstitialAd = null;
+        _consultasDesdeUltimoAd = 0;
         loadInterstitial();
         onDismissed?.call();
       },
