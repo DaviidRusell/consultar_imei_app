@@ -1,6 +1,7 @@
 import 'package:consultar_imei/core/ads/ad_service.dart';
 import 'package:flutter/material.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
+import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'package:provider/provider.dart';
 import 'package:http/http.dart' as http;
 
@@ -12,8 +13,11 @@ import 'presentation/providers/imei_provider.dart';
 import 'presentation/screens/home_screen.dart';
 
 void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
+  final widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
+  FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
+
   await MobileAds.instance.initialize();
+
   runApp(const ConsultarImeiApp());
 }
 
