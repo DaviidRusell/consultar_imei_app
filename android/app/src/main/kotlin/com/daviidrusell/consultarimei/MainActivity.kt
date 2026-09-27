@@ -1,4 +1,4 @@
-package com.daviidrusell.consultar_imei
+package com.daviidrusell.consultarimei
 
 import io.flutter.embedding.android.FlutterActivity
 
