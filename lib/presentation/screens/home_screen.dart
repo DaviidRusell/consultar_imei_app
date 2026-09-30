@@ -46,7 +46,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   String? _validar(String value) {
     final v = value.trim();
-    if (v.isEmpty) return 'Ingresa un IMEI';
+    if (v.isEmpty) return 'IMEI INVALIDO';
     if (v.length < _minLen) return 'Faltan ${_minLen - v.length} dígitos';
     if (!RegExp(r'^\d{14,15}$').hasMatch(v)) return 'Solo se permiten números';
     return null;
@@ -123,7 +123,7 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
       appBar: AppBar(title: const Text('Consultar IMEI')),
       body: SafeArea(
-        child: Padding(
+        child: SingleChildScrollView(
           padding: const EdgeInsets.all(20),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -146,7 +146,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 onSubmitted: (_) => _consultar(),
                 style: const TextStyle(fontSize: 18, letterSpacing: 1.2),
                 decoration: InputDecoration(
-                  hintText: '444444444444444',
+                  hintText: 'Digita aquí el IMEI',
                   filled: true,
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(14),
@@ -196,6 +196,8 @@ class _HomeScreenState extends State<HomeScreen> {
                 icon: const Icon(Icons.qr_code_scanner),
                 label: const Text('ESCANEAR CÓDIGO DE BARRA'),
               ),
+              const SizedBox(height: 24),
+              const _ImeiHelpCard(),
             ],
           ),
         ),
@@ -266,6 +268,88 @@ class _ScannerPageState extends State<_ScannerPage> {
               ),
             ),
           ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ImeiHelpCard extends StatelessWidget {
+  const _ImeiHelpCard();
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.primaryContainer.withValues(alpha: 0.4),
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.info_outline, color: theme.colorScheme.primary),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  '¿Cómo consultar el IMEI de tu teléfono?',
+                  style: theme.textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          const _HelpStep(
+            numero: 1,
+            texto: 'Abre la app de Teléfono de tu celular.',
+          ),
+          const _HelpStep(
+            numero: 2,
+            texto: 'Marca *#06# (no necesitas llamar).',
+          ),
+          const _HelpStep(
+            numero: 3,
+            texto: 'Aparecerá una ventana con tu IMEI (15 dígitos).',
+          ),
+          const _HelpStep(
+            numero: 4,
+            texto: 'Escríbelo arriba o toca "Escanear código de barra" para leerlo de esa pantalla.',
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Si tu teléfono tiene dos SIM verás dos IMEI; consulta cada uno por separado.',
+            style: theme.textTheme.bodySmall,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _HelpStep extends StatelessWidget {
+  final int numero;
+  final String texto;
+  const _HelpStep({required this.numero, required this.texto});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 3),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          CircleAvatar(
+            radius: 10,
+            child: Text('$numero', style: const TextStyle(fontSize: 11)),
+          ),
+          const SizedBox(width: 10),
+          Expanded(child: Text(texto)),
         ],
       ),
     );
