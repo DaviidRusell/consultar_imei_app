@@ -5,6 +5,7 @@ import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../providers/imei_provider.dart';
 import '../widgets/imei_result_sheet.dart';
@@ -198,6 +199,7 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
               const SizedBox(height: 24),
               const _ImeiHelpCard(),
+              const _FuenteOficialCard(),
             ],
           ),
         ),
@@ -325,6 +327,53 @@ class _ImeiHelpCard extends StatelessWidget {
           Text(
             'Si tu teléfono tiene dos SIM verás dos IMEI; consulta cada uno por separado.',
             style: theme.textTheme.bodySmall,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _FuenteOficialCard extends StatelessWidget {
+  const _FuenteOficialCard();
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Padding(
+      padding: const EdgeInsets.only(top: 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Esta app no es oficial ni está afiliada al Gobierno de Colombia, '
+            'la CRC ni ningún operador móvil. La información se basa en datos '
+            'públicos regulados por la CRC.',
+            style: theme.textTheme.bodySmall?.copyWith(color: theme.hintColor),
+          ),
+          const SizedBox(height: 6),
+          InkWell(
+            onTap: () =>
+                launchUrl(Uri.parse('https://www.imeicolombia.com.co/')),
+            child: Text(
+              'Ver plataforma oficial de consulta de IMEI',
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.primary,
+                decoration: TextDecoration.underline,
+              ),
+            ),
+          ),
+          const SizedBox(height: 2),
+          InkWell(
+            onTap: () => launchUrl(Uri.parse('https://www.crcom.gov.co/')),
+            child: Text(
+              'Entidad reguladora: CRC (crcom.gov.co)',
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.primary,
+                decoration: TextDecoration.underline,
+              ),
+            ),
           ),
         ],
       ),
